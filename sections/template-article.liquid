@@ -1,0 +1,189 @@
+<article id="blog_post" class="pt-20 pb-20">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 col-md-10 offset-md-1">
+                {% for block in section.blocks %}
+                    {% case block.type %}
+                        {% when 'article_title' %}
+                            <div class="text-center">
+                                <a href="{{ blog.url }}"
+                                   class="text-base uppercase text-gray-500 hover:text-gray-900 transition-all duration-300 font-bold">{{ blog.title }}</a>
+                                <h1 class="text-center display-2 font-bold">{{ article.title }}</h1>
+                            </div>
+                        {% when 'article_author' %}
+                            <div class="details text-center d-flex flex-row justify-center gap-1">
+                            {% if section.settings.show_author %}
+                                <p>{{ article.author }}</p>
+                            {% endif %}
+                        {% when 'article_date' %}
+                            {% if section.settings.show_date %}
+                                <time datetime="{{ article.published_at |  date: '%d-%m-%Y' }}" class="font-normal">{{ article.published_at |  date: format: 'on_date' }}</time>
+                            {% endif %}
+                            </div>
+                        {% when 'article_image' %}
+                            {% if article.image != blank %}
+                                <img src="{{ article.image | img_url: 'master' }}" alt="{{ article.image.alt }}" class="mx-auto mt-3 w-full h-80 object-cover">
+                            {% else %}
+                                {% assign placeholder_image = 'lifestyle-2' %}
+                                {{ placeholder_image | placeholder_svg_tag: 'mx-auto mt-3 w-full h-80 object-cover bg-indigo-100 p-5 rounded-md' }}
+                            {% endif %}
+                        {% when 'article_content' %}
+                            <div class="mt-10">{{ article.content }}</div>
+                        {% else %}
+                    {% endcase %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</article>
+
+{% if blog.comments_enabled? %}
+    <section id="comments" class="mt-5 mb-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-md-10 offset-md-1">
+                    <div class="inner">
+                        {% if article.comments_count > 0 %}
+                            <h2 class="font-bold display-6 mb-2">Comments</h2>
+                            {% paginate article.comments by 5 %}
+                                {% for comment in article.comments %}
+                                    <div class="comment mt-3 mb-3">
+                                        <p class="font-bold mb-1">{{ comment.author }} - <span class="text-gray-400 font-light text-sm">{{ comment.created_at | date: format: 'long' }}</span></p>
+                                        <p class="font-normal">{{ comment.content }}</p>
+                                    </div>
+                                {% endfor %}
+                                {% if paginate.pages > 1 %}
+                                    {{ paginate |  default_pagination }}
+                                {% endif %}
+                            {% endpaginate %}
+                        {% else %}
+                            <p>There are no comments in the article.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="comment_form" class="mt-5 mb-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-md-10 offset-md-1">
+                    <div class="inner">
+                        {% form 'new_comment', article %}
+                            <div class="flex-1 items-center justify-center max-w-2xl px4">
+
+                                {% if form.errors %}
+                                    <div class="alert alert-danger w-max">
+                                        <p>There was an error posting your comment.</p>
+                                        {% for error in form.errors %}
+                                            <ul>
+                                                <li>
+                                                    <span class="font-bold">{{ form.errors.messages[error] }}</span>
+                                                </li>
+                                            </ul>
+                                        {% endfor %}
+                                    </div>
+                                    {% elsif form.posted_successfully? %}
+                                        <div class="alert alert-success w-max">
+                                            <p>Your comment has been posted successfully.</p>
+                                        </div>
+                                {% endif %}
+
+                                <div class="mb-4">
+                                    <label for="comment_content" class="block text-sm font-medium text-gray-700">Comment</label>
+                                    <textarea name="comment[body]" id="comment_content" rows="3" class="mt-1 block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-800 border rounded-md p-2" required></textarea>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="comment_author" class="block text-sm font-medium text-gray-700">Name</label>
+                                    <input type="text" name="comment[author]" id="comment_author" class="mt-1 block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-800 rounded-md border p-2" required>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="comment_email" class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" name="comment[email]" id="comment_email" class="mt-1 block
+                                    w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 sm:text-sm border-gray-800 rounded-md border" required>
+                                </div>
+                                <div class="mb-4">
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Post Comment</button>
+                                </div>
+                            </div>
+                        {% endform %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endif %}
+
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": {{ article.title | json }},
+        "articleBody": {{ article.content | strip_html | json }},
+        {% if article.excerpt != blank%}
+            "description": {{ article.excerpt | strip_html | json }},
+        {% endif %}
+        {% if article.image %}
+            "image": [
+                {{ article.image | img_url: "master" | prepend: 'https:' | json }}
+            ],
+        {% endif %}
+        "datePublished": {{ article.published_at | date: format: "default" | json }},
+        "dateCreated": {{ article.created_at | date: format: "default" | json }},
+        "author": {
+                    "@type": "Person",
+                    "name": {{ article.author | json }}
+                },
+        "publisher": {
+            "@type": "Organization",
+            "name": {{ shop.name | json }}
+            }
+    }
+</script>
+
+{% schema %}
+{
+  "name": "Template Article",
+  "settings": [
+    {
+        "type": "checkbox",
+        "id": "show_author",
+        "default": true,
+        "label": "Show author"
+    },
+    {
+        "type": "checkbox",
+        "id": "show_date",
+        "default": true,
+        "label": "Show date"
+    }
+  ],
+  "blocks": [
+    {
+        "type": "article_title",
+        "name": "Article Title",
+        "limit": 1
+    },
+    {
+        "type": "article_author",
+        "name": "Article Author",
+        "limit": 1
+    },
+    {
+        "type": "article_date",
+        "name": "Article Date",
+        "limit": 1
+    },
+    {
+        "type": "article_image",
+        "name": "Article Image",
+        "limit": 1
+    },
+    {
+        "type": "article_content",
+        "name": "Article Content",
+        "limit": 1
+    }
+  ]
+}
+{% endschema %}
